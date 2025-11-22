@@ -1,10 +1,10 @@
-declare namespace NodeJS {
-  interface ProcessEnv {
-    API_KEY: string;
-    [key: string]: string | undefined;
-  }
-}
+export {};
 
-declare var process: {
-  env: NodeJS.ProcessEnv;
-};
+declare global {
+  var process: {
+    env: {
+      API_KEY: string;
+      [key: string]: string | undefined;
+    };
+  };
+}
