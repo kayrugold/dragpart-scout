@@ -84,11 +84,11 @@ export const findCarParts = async (
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash", 
+      model: "gemini-3-pro-preview", 
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }], 
-        systemInstruction: "You are an expert mechanic. Your highest priority is ensuring links DO NOT 404. You NEVER link to specific product pages. You ONLY link to search results pages (either via store search templates or 'site:' google searches). Be specific with part names. Include results from budget options (Temu) to premium race shops.",
+        systemInstruction: "You are an expert drag racing mechanic and parts scout. Your highest priority is ensuring part COMPATIBILITY for the specific vehicle engine and chassis. Your second priority is ensuring links DO NOT 404 (link to search pages only). Be specific with part names. Include results from budget options (Temu) to premium race shops (Summit, JEGS).",
         temperature: 0.3,
       },
     });
