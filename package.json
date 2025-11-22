@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy --assets=./dist"
+    "deploy": "npm run build && wrangler deploy --assets=./dist",
+    "fix-deps": "rm -rf node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "@google/genai": "*",

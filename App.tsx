@@ -103,7 +103,14 @@ const App: React.FC = () => {
       
     } catch (err: any) {
       setStatus(SearchStatus.ERROR);
-      setErrorMsg(err.message || "An unknown error occurred.");
+      console.error(err);
+      let msg = err.message || "An unknown error occurred.";
+      if (msg.includes("API Key")) {
+        msg = "Missing API Key. Please check your settings.";
+      } else if (msg.includes("fetch")) {
+        msg = "Connection failed. Please check your internet connection.";
+      }
+      setErrorMsg(msg);
     }
   };
 
@@ -237,7 +244,7 @@ const App: React.FC = () => {
                 <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-3 text-red-200 animate-bounce-short print:hidden">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold">Search Error</h4>
+                    <h4 className="font-bold">System Alert</h4>
                     <p className="text-sm">{errorMsg}</p>
                   </div>
                 </div>
