@@ -1,0 +1,128 @@
+import { GoogleGenAI } from "@google/genai";
+import { CarProfile, SearchResult } from "../types";
+
+// Initialize Gemini Client
+const getClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key is missing. If you are deploying this app, please add 'API_KEY' to your environment variables settings.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+export const findCarParts = async (
+  car: CarProfile, 
+  partQuery: string,
+  category: string = "All Categories"
+): Promise<Omit<SearchResult, 'id' | 'timestamp'>> => {
+  
+  const isBrowsing = !partQuery || partQuery.trim() === "";
+  const categoryContext = category && category !== 'All Categories'
+    ? `Focus specifically on parts within the "${category}" category.`
+    : '';
+
+  const vehicleStr = `${car.year} ${car.make} ${car.model}`;
+
+  let prompt = `
+    I am building a drag racing car. 
+    Vehicle: ${vehicleStr} with a ${car.engine} engine.
+  `;
+
+  if (isBrowsing) {
+    // Browsing Mode Prompt
+    prompt += `
+    I am looking for recommendations in the "${category}" category to improve my car's drag racing performance.
+
+    Please identify 5-6 of the most effective upgrades or replacement parts for this specific vehicle platform in the ${category} system.
+
+    For each recommended part type, provide a bulleted list item with the following structure:
+
+    *   **Part Name**: [Common name for the upgrade]
+    *   **Action**: [Scout Options for {Part Name}](search:{Part Name})
+    *   **Performance Benefit**: Why it helps in drag racing.
+    *   **Estimated Price**: Cost range.
+
+    Sort by impact. 
+    STRICTLY DO NOT USE TABLES. Use standard bulleted lists.
+    `;
+  } else {
+    // Specific Search Prompt
+    prompt += `
+    Part needed: ${partQuery}.
+    ${categoryContext}
+
+    Please search for this part available for sale online for my ${vehicleStr}.
+    
+    1. Find 6-8 distinct, real-world options from a broad range of sellers.
+       - CHECK BOTH: The hardcoded vendors below AND any other reputable performance shops found via Google Search (e.g., DragRacingWheels, Holley, AmericanMuscle, etc.).
+    
+    2. **NO BROKEN LINKS RULE (CRITICAL)**: 
+       - **NEVER** output a direct product page URL (e.g., do NOT use 'summitracing.com/parts/...' or 'realtruck.com/p/...'). These links break too easily.
+       - **INSTEAD**: You MUST construct a **SEARCH URL**.
+
+    **SEARCH LINK CONSTRUCTION RULES**:
+    
+    A) **For Known Vendors (Use these templates)**:
+    - Summit Racing: \`https://www.summitracing.com/search?keyword=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - JEGS: \`https://www.jegs.com/webapp/wcs/stores/servlet/SearchResultsPageCmd?storeId=10001&catalogId=10002&langId=-1&q=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - RealTruck: \`https://www.realtruck.com/search/?q=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - Speedway Motors: \`https://www.speedwaymotors.com/Search?query=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - eBay Motors: \`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - Temu: \`https://www.temu.com/search_result.html?search_key=${encodeURIComponent(vehicleStr)} {Part Name}\`
+    - LKQ Online: \`https://www.lkqonline.com/?q=${encodeURIComponent(vehicleStr)} {Part Name}\`
+
+    B) **For Discovered Vendors (Universal Site Search)**:
+    - If you find a great part at a store not listed above (e.g. dragracingwheels.com), USE IT.
+    - **Link Format**: \`https://www.google.com/search?q=site:{domain}%20${encodeURIComponent(vehicleStr)}%20{Part Name}\`
+    - *Example*: \`https://www.google.com/search?q=site:dragracingwheels.com%201969%20Camaro%20Drag%20Wheels\`
+
+    3. **Format the Output**:
+       For each option, provide a bullet point with:
+       - **Product**: The specific brand and part name (e.g., "EBC Greenstuff 6000 Brake Kit").
+       - **Link**: \`[Find at {Store Name}]({Search URL from rules above})\`
+         **IMPORTANT**: Do NOT put a space between ']' and '('. Example: [Link](URL).
+       - **Price**: Estimated Price.
+       - **Notes**: Key spec or quality note.
+    
+    4. Sort by Price (Low to High).
+    
+    STRICTLY DO NOT USE TABLES. Use standard bulleted lists.
+    `;
+  }
+
+  try {
+    const ai = getClient();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash", 
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }], 
+        systemInstruction: "You are an expert mechanic. Your highest priority is ensuring links DO NOT 404. You NEVER link to specific product pages. You ONLY link to search results pages (either via store search templates or 'site:' google searches). Be specific with part names. Include results from budget options (Temu) to premium race shops.",
+        temperature: 0.3,
+      },
+    });
+
+    // Extract text
+    const text = response.text || "No details found.";
+
+    // Extract grounding chunks (URLs)
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+
+    return {
+      car,
+      partQuery: isBrowsing ? `Browse: ${category}` : partQuery,
+      aiResponseText: text,
+      // Map to our internal type to be safe
+      groundingChunks: groundingChunks.map((chunk: any) => ({
+        web: chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : undefined
+      })).filter((c: any) => c.web !== undefined)
+    };
+
+  } catch (error: any) {
+    console.error("Gemini Search Error:", error);
+    if (error.message.includes("API Key")) {
+      throw error;
+    }
+    throw new Error("Failed to search for parts. " + (error.message || "Please check your connection."));
+  }
+};

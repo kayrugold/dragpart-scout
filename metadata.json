@@ -1,0 +1,5 @@
+{
+  "name": "DragPart Scout",
+  "description": "A smart assistant for drag racers to find, compare, and track car parts across the web using AI-powered search grounding.",
+  "requestFramePermissions": []
+}
