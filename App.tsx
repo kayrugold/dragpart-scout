@@ -104,8 +104,15 @@ const App: React.FC = () => {
     } catch (err: any) {
       setStatus(SearchStatus.ERROR);
       console.error(err);
-      // Display raw error for debugging purposes if key issue
+      
       let msg = err.message || "An unknown error occurred.";
+      // Clean up the error message if it's a quota issue
+      if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+        msg = "High Traffic Alert: The AI model is currently busy or the daily free limit was reached. We've switched to a faster model, please try clicking Scout again!";
+      } else if (msg.includes('API Key')) {
+        msg = "API Key Error: The application cannot connect to Google.";
+      }
+      
       setErrorMsg(msg);
     }
   };
