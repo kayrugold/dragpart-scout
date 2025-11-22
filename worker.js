@@ -17,21 +17,16 @@ export default {
       let text = await response.text();
       
       // Get the key from Cloudflare Secrets/Variables
-      const apiKey = env.API_KEY || ""; 
+      // If missing, we inject a specific string so the UI knows it was a server config issue
+      const apiKey = env.API_KEY || "MISSING_ON_SERVER"; 
       
       // Replace the placeholder in the window.CF_CONFIG object
       text = text.replace(/__CLOUDFLARE_API_KEY__/g, apiKey);
       
-      // Create new headers to add debug info
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set('X-Debug-Key-Status', apiKey ? 'Key_Found' : 'Key_Missing');
-      // Security: Only log the keys names (not values) to debug what vars exist
-      newHeaders.set('X-Env-Keys', Object.keys(env).join(','));
-
       return new Response(text, {
         status: response.status,
         statusText: response.statusText,
-        headers: newHeaders
+        headers: response.headers
       });
     }
 

@@ -82,19 +82,18 @@ export const findCarParts = async (
   }
 
   // API Key Priority:
-  // 1. Runtime Injection (Cloudflare Production via worker.js)
-  // 2. Build-time Environment Variable (Standard Vite)
+  // 1. LocalStorage (Manual Override by User)
+  // 2. Runtime Injection (Cloudflare Production via worker.js)
+  // 3. Build-time Environment Variable (Standard Vite)
+  
+  const manualKey = localStorage.getItem("dragpart_manual_key");
   const cfKey = window.CF_CONFIG?.API_KEY;
   const localKey = import.meta.env.VITE_API_KEY;
 
-  // DEBUGGING LOGS
-  console.log("[Gemini Service] CF Key detected:", cfKey && cfKey !== "__CLOUDFLARE_API_KEY__");
-  console.log("[Gemini Service] Local Key detected:", !!localKey);
-  
-  let apiKey = (cfKey && cfKey !== "__CLOUDFLARE_API_KEY__") ? cfKey : localKey;
+  let apiKey = manualKey || ((cfKey && cfKey !== "__CLOUDFLARE_API_KEY__" && cfKey !== "MISSING_ON_SERVER") ? cfKey : localKey);
 
-  if (!apiKey || apiKey === "__CLOUDFLARE_API_KEY__" || apiKey === "__VITE_API_KEY__") {
-    console.error("API Key Failure. CF_CONFIG:", window.CF_CONFIG, "Env:", import.meta.env);
+  if (!apiKey || apiKey === "__CLOUDFLARE_API_KEY__" || apiKey === "__VITE_API_KEY__" || apiKey === "MISSING_ON_SERVER") {
+    console.error("API Key Failure. CF_CONFIG:", window.CF_CONFIG);
     throw new Error("API Key is missing. The Cloudflare Worker did not inject the key correctly.");
   }
 

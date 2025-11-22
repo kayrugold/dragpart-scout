@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Wrench, AlertCircle, Flag, Terminal } from 'lucide-react';
+import { Gauge, Wrench, AlertCircle, Flag, Terminal, Key } from 'lucide-react';
 import { CarProfile, SearchResult, SearchStatus } from './types';
 import { findCarParts } from './services/geminiService';
 import { GaragePanel } from './components/GaragePanel';
@@ -26,11 +26,16 @@ const App: React.FC = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [currentResultId, setCurrentResultId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  // Manual Key State
+  const [manualKeyInput, setManualKeyInput] = useState('');
+  const [hasManualKey, setHasManualKey] = useState(false);
 
   // Load history from local storage on mount
   useEffect(() => {
     const savedHistory = localStorage.getItem('dragpart_history');
     const savedCar = localStorage.getItem('dragpart_car');
+    const savedKey = localStorage.getItem('dragpart_manual_key');
     
     if (savedHistory) {
       try {
@@ -45,6 +50,9 @@ const App: React.FC = () => {
         } catch(e) {
             console.error("Failed to parse car", e);
         }
+    }
+    if (savedKey) {
+        setHasManualKey(true);
     }
   }, []);
 
@@ -115,6 +123,21 @@ const App: React.FC = () => {
       
       setErrorMsg(msg);
     }
+  };
+
+  const saveManualKey = () => {
+      if (!manualKeyInput.trim()) return;
+      localStorage.setItem('dragpart_manual_key', manualKeyInput.trim());
+      setHasManualKey(true);
+      setManualKeyInput('');
+      setErrorMsg(null);
+      // Auto retry
+      handleSearch();
+  };
+  
+  const clearManualKey = () => {
+      localStorage.removeItem('dragpart_manual_key');
+      setHasManualKey(false);
   };
 
   // When category changes in the UI, check if we should auto-browse
@@ -215,6 +238,17 @@ const App: React.FC = () => {
                  }}
                  currentId={currentResultId || undefined}
                />
+               
+               {/* Key Status Indicator */}
+               {hasManualKey && (
+                   <div className="mt-4 p-2 text-xs text-center text-slate-500 border border-dashed border-slate-700 rounded cursor-help" title="Using manual override key">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                          <Key className="w-3 h-3 text-racing-highlight" />
+                          <span>Custom Key Active</span>
+                      </div>
+                      <button onClick={clearManualKey} className="text-racing-accent hover:underline">Clear Key</button>
+                   </div>
+               )}
             </div>
           </div>
 
@@ -247,24 +281,36 @@ const App: React.FC = () => {
                 <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg text-red-200 animate-bounce-short print:hidden">
                    <div className="flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-bold">System Alert</h4>
-                        <p className="text-sm mb-2">{errorMsg}</p>
+                        <p className="text-sm mb-4">{errorMsg}</p>
+                        
+                        {errorMsg.includes('API Key') && (
+                            <div className="bg-black/30 p-4 rounded-lg border border-white/10">
+                                <p className="text-xs text-slate-300 mb-2 font-semibold">QUICK FIX: Enter API Key Manually</p>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="password" 
+                                        placeholder="Paste Google Gemini API Key here..."
+                                        className="flex-1 bg-racing-900 border border-racing-700 text-white px-3 py-2 rounded text-sm focus:border-racing-highlight focus:outline-none"
+                                        value={manualKeyInput}
+                                        onChange={(e) => setManualKeyInput(e.target.value)}
+                                    />
+                                    <button 
+                                        onClick={saveManualKey}
+                                        className="bg-racing-highlight text-racing-900 font-bold px-4 py-2 rounded text-sm hover:bg-sky-400 transition-colors"
+                                    >
+                                        SAVE & RETRY
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-2">
+                                    This saves the key to your browser for this device only. 
+                                    Or verify server status via CLI: <code className="bg-black/50 px-1 rounded">npx wrangler secret list</code>
+                                </p>
+                            </div>
+                        )}
                       </div>
                    </div>
-                   {errorMsg.includes('API Key') && (
-                     <div className="mt-2 ml-8 p-3 bg-black/30 rounded border border-red-500/30 text-xs font-mono text-slate-300">
-                        <div className="flex items-center gap-2 text-racing-highlight mb-1">
-                           <Terminal className="w-3 h-3" />
-                           <span className="font-bold">CLI FIX REQUIRED:</span>
-                        </div>
-                        <p className="mb-1">Your local deployment overwrote the dashboard keys.</p>
-                        <p>Run this command in your terminal to fix it permanently:</p>
-                        <div className="mt-2 bg-black p-2 rounded select-all text-green-400 whitespace-pre-wrap break-all">
-                           npx wrangler secret put API_KEY
-                        </div>
-                     </div>
-                   )}
                 </div>
               )}
 
