@@ -4,14 +4,16 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, (process as any).cwd(), '')
 
   return {
     plugins: [react()],
     define: {
-      // This ensures process.env.API_KEY works in the client-side code after build
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || 'AIzaSyDYC9cpAgZ-pHu0qpzX_GdilmZtuGoVc7I')
+      // Cloudflare build environments hide "Secrets" (encrypted env vars) during build.
+      // We provide a fallback ("") so 'npm run build' doesn't crash.
+      // NOTE: For the app to use the key, it must be set as a non-encrypted 'Variable' 
+      // in Cloudflare Pages/Workers settings, or baked in via .env for local builds.
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || "")
     }
   }
 })
