@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Wrench, AlertCircle, Flag } from 'lucide-react';
+import { Gauge, Wrench, AlertCircle, Flag, Terminal } from 'lucide-react';
 import { CarProfile, SearchResult, SearchStatus } from './types';
 import { findCarParts } from './services/geminiService';
 import { GaragePanel } from './components/GaragePanel';
@@ -237,12 +237,27 @@ const App: React.FC = () => {
               </div>
 
               {errorMsg && (
-                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-3 text-red-200 animate-bounce-short print:hidden">
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold">System Alert</h4>
-                    <p className="text-sm">{errorMsg}</p>
-                  </div>
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg text-red-200 animate-bounce-short print:hidden">
+                   <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-bold">System Alert</h4>
+                        <p className="text-sm mb-2">{errorMsg}</p>
+                      </div>
+                   </div>
+                   {errorMsg.includes('API Key') && (
+                     <div className="mt-2 ml-8 p-3 bg-black/30 rounded border border-red-500/30 text-xs font-mono text-slate-300">
+                        <div className="flex items-center gap-2 text-racing-highlight mb-1">
+                           <Terminal className="w-3 h-3" />
+                           <span className="font-bold">CLI FIX REQUIRED:</span>
+                        </div>
+                        <p className="mb-1">Your local deployment overwrote the dashboard keys.</p>
+                        <p>Run this command in your terminal to fix it permanently:</p>
+                        <div className="mt-2 bg-black p-2 rounded select-all text-green-400 whitespace-pre-wrap break-all">
+                           npx wrangler secret put API_KEY
+                        </div>
+                     </div>
+                   )}
                 </div>
               )}
 

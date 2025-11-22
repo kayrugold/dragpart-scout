@@ -12,25 +12,21 @@ export default {
     }
 
     // 3. Runtime Injection: If serving HTML, inject the API Key from the Environment
-    // This allows the frontend to access the key set in Cloudflare Dashboard
     const contentType = response.headers.get('content-type');
     if (response.ok && contentType && contentType.includes('text/html')) {
       let text = await response.text();
       
       // Get the key from Cloudflare Secrets/Variables
-      // Fallback to empty string if not set
       const apiKey = env.API_KEY || ""; 
       
-      // DEBUG: Log to Cloudflare logs (optional)
-      // console.log("Worker: API Key Status:", apiKey ? "Found" : "Missing");
-
       // Replace the placeholder in the window.CF_CONFIG object
-      // We use regex to ensure we replace all instances and to be robust
       text = text.replace(/__CLOUDFLARE_API_KEY__/g, apiKey);
       
       // Create new headers to add debug info
       const newHeaders = new Headers(response.headers);
       newHeaders.set('X-Debug-Key-Status', apiKey ? 'Key_Found' : 'Key_Missing');
+      // Security: Only log the keys names (not values) to debug what vars exist
+      newHeaders.set('X-Env-Keys', Object.keys(env).join(','));
 
       return new Response(text, {
         status: response.status,
@@ -39,7 +35,6 @@ export default {
       });
     }
 
-    // 4. Otherwise return the original response
     return response;
   },
 };
