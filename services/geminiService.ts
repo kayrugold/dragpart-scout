@@ -1,15 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { CarProfile, SearchResult } from "../types";
 
-// Initialize Gemini Client
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API Key is missing. If you are deploying this app, please add 'API_KEY' to your environment variables settings.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
-
 export const findCarParts = async (
   car: CarProfile, 
   partQuery: string,
@@ -91,7 +82,7 @@ export const findCarParts = async (
   }
 
   try {
-    const ai = getClient();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash", 
       contents: prompt,
