@@ -21,13 +21,21 @@ export default {
       // Fallback to empty string if not set
       const apiKey = env.API_KEY || ""; 
       
+      // DEBUG: Log to Cloudflare logs (optional)
+      // console.log("Worker: API Key Status:", apiKey ? "Found" : "Missing");
+
       // Replace the placeholder in the window.CF_CONFIG object
-      text = text.replace('__VITE_API_KEY__', apiKey);
+      // We use regex to ensure we replace all instances and to be robust
+      text = text.replace(/__CLOUDFLARE_API_KEY__/g, apiKey);
       
+      // Create new headers to add debug info
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set('X-Debug-Key-Status', apiKey ? 'Key_Found' : 'Key_Missing');
+
       return new Response(text, {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers
+        headers: newHeaders
       });
     }
 

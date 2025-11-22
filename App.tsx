@@ -104,12 +104,8 @@ const App: React.FC = () => {
     } catch (err: any) {
       setStatus(SearchStatus.ERROR);
       console.error(err);
+      // Display raw error for debugging purposes if key issue
       let msg = err.message || "An unknown error occurred.";
-      if (msg.includes("API Key")) {
-        msg = "Missing API Key. Please check your settings.";
-      } else if (msg.includes("fetch")) {
-        msg = "Connection failed. Please check your internet connection.";
-      }
       setErrorMsg(msg);
     }
   };

@@ -86,11 +86,16 @@ export const findCarParts = async (
   // 2. Build-time Environment Variable (Standard Vite)
   const cfKey = window.CF_CONFIG?.API_KEY;
   const localKey = import.meta.env.VITE_API_KEY;
-  
-  let apiKey = (cfKey && cfKey !== "__VITE_API_KEY__") ? cfKey : localKey;
 
-  if (!apiKey || apiKey === "__VITE_API_KEY__") {
-    throw new Error("API Key is missing. Please check your Cloudflare Dashboard settings.");
+  // DEBUGGING LOGS
+  console.log("[Gemini Service] CF Key detected:", cfKey && cfKey !== "__CLOUDFLARE_API_KEY__");
+  console.log("[Gemini Service] Local Key detected:", !!localKey);
+  
+  let apiKey = (cfKey && cfKey !== "__CLOUDFLARE_API_KEY__") ? cfKey : localKey;
+
+  if (!apiKey || apiKey === "__CLOUDFLARE_API_KEY__" || apiKey === "__VITE_API_KEY__") {
+    console.error("API Key Failure. CF_CONFIG:", window.CF_CONFIG, "Env:", import.meta.env);
+    throw new Error("API Key is missing. The Cloudflare Worker did not inject the key correctly.");
   }
 
   try {
