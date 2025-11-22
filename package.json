@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy --assets=./dist",
     "fix-deps": "rm -rf node_modules package-lock.json && npm install"
   },
   "dependencies": {
@@ -25,7 +24,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.5.3",
-    "vite": "^7.2.4",
-    "wrangler": "^4.50.0"
+    "vite": "^5.4.1",
+    "wrangler": "^3.57.1"
   }
 }
