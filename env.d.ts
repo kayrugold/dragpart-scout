@@ -1,10 +1,15 @@
-export {};
+/// <reference types="vite/client" />
 
-declare global {
-  var process: {
-    env: {
-      API_KEY: string;
-      [key: string]: string | undefined;
-    };
+interface Window {
+  CF_CONFIG: {
+    API_KEY: string;
   };
+}
+
+interface ImportMetaEnv {
+  readonly VITE_API_KEY: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
 }

@@ -81,8 +81,20 @@ export const findCarParts = async (
     `;
   }
 
+  // API Key Priority:
+  // 1. Runtime Injection (Cloudflare Production via worker.js)
+  // 2. Build-time Environment Variable (Standard Vite)
+  const cfKey = window.CF_CONFIG?.API_KEY;
+  const localKey = import.meta.env.VITE_API_KEY;
+  
+  let apiKey = (cfKey && cfKey !== "__VITE_API_KEY__") ? cfKey : localKey;
+
+  if (!apiKey || apiKey === "__VITE_API_KEY__") {
+    throw new Error("API Key is missing. Please check your Cloudflare Dashboard settings.");
+  }
+
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview", 
       contents: prompt,
@@ -111,9 +123,6 @@ export const findCarParts = async (
 
   } catch (error: any) {
     console.error("Gemini Search Error:", error);
-    if (error.message.includes("API Key")) {
-      throw error;
-    }
-    throw new Error("Failed to search for parts. " + (error.message || "Please check your connection."));
+    throw error;
   }
 };
