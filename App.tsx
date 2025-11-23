@@ -115,6 +115,16 @@ const App: React.FC = () => {
       
       let msg = err.message || "An unknown error occurred.";
       
+      // --- AUTO-FIX: Handle Expired/Invalid Keys stored in Browser ---
+      // If we have a manual key and get an auth error, it's likely the manual key is the culprit.
+      if (hasManualKey && (msg.includes('expired') || msg.includes('INVALID_ARGUMENT') || msg.includes('API_KEY_INVALID') || msg.includes('400'))) {
+         console.log("Auto-clearing invalid manual key");
+         localStorage.removeItem('dragpart_manual_key');
+         setHasManualKey(false);
+         setErrorMsg("The saved 'Manual API Key' was expired and has been removed. Please click SCOUT again to use the server's fresh key.");
+         return; // Stop here so the user sees the message
+      }
+
       // Detect Leaked Key Error (Code 403 from Google)
       if (msg.includes('leaked') || (msg.includes('403') && msg.includes('PERMISSION_DENIED'))) {
          msg = "SECURITY ALERT: Your API Key was detected publicly and revoked by Google. You must generate a NEW key.";
