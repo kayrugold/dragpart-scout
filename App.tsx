@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gauge, Wrench, AlertCircle, Flag, Terminal, Key } from 'lucide-react';
+import { Gauge, Wrench, AlertCircle, Flag, Key, ExternalLink } from 'lucide-react';
 import { CarProfile, SearchResult, SearchStatus } from './types';
 import { findCarParts } from './services/geminiService';
 import { GaragePanel } from './components/GaragePanel';
@@ -114,10 +114,17 @@ const App: React.FC = () => {
       console.error(err);
       
       let msg = err.message || "An unknown error occurred.";
-      // Clean up the error message if it's a quota issue
-      if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-        msg = "High Traffic Alert: The AI model is currently busy or the daily free limit was reached. We've switched to a faster model, please try clicking Scout again!";
-      } else if (msg.includes('API Key')) {
+      
+      // Detect Leaked Key Error (Code 403 from Google)
+      if (msg.includes('leaked') || (msg.includes('403') && msg.includes('PERMISSION_DENIED'))) {
+         msg = "SECURITY ALERT: Your API Key was detected publicly and revoked by Google. You must generate a NEW key.";
+      }
+      // Detect Quota Issues
+      else if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+        msg = "High Traffic Alert: The AI model is currently busy or the daily free limit was reached. Please try clicking Scout again in a few moments!";
+      } 
+      // Detect Generic Key/Connection Issues
+      else if (msg.includes('API Key')) {
         msg = "API Key Error: The application cannot connect to Google.";
       }
       
@@ -285,13 +292,16 @@ const App: React.FC = () => {
                         <h4 className="font-bold">System Alert</h4>
                         <p className="text-sm mb-4">{errorMsg}</p>
                         
-                        {errorMsg.includes('API Key') && (
+                        {/* Show manual entry for API Key errors OR Leaked Key errors */}
+                        {(errorMsg.includes('API Key') || errorMsg.includes('SECURITY ALERT') || errorMsg.includes('leaked') || errorMsg.includes('Permission')) && (
                             <div className="bg-black/30 p-4 rounded-lg border border-white/10">
-                                <p className="text-xs text-slate-300 mb-2 font-semibold">QUICK FIX: Enter API Key Manually</p>
+                                <p className="text-xs text-slate-300 mb-2 font-semibold">
+                                  {errorMsg.includes('SECURITY ALERT') ? 'ACTION REQUIRED: Enter A NEW Key' : 'QUICK FIX: Enter API Key Manually'}
+                                </p>
                                 <div className="flex gap-2">
                                     <input 
                                         type="password" 
-                                        placeholder="Paste Google Gemini API Key here..."
+                                        placeholder="Paste NEW Google Gemini API Key here..."
                                         className="flex-1 bg-racing-900 border border-racing-700 text-white px-3 py-2 rounded text-sm focus:border-racing-highlight focus:outline-none"
                                         value={manualKeyInput}
                                         onChange={(e) => setManualKeyInput(e.target.value)}
@@ -303,10 +313,19 @@ const App: React.FC = () => {
                                         SAVE & RETRY
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-2">
-                                    This saves the key to your browser for this device only. 
-                                    Or verify server status via CLI: <code className="bg-black/50 px-1 rounded">npx wrangler secret list</code>
-                                </p>
+                                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                  <a 
+                                    href="https://aistudio.google.com/app/apikey" 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="text-xs text-racing-highlight hover:text-white underline flex items-center gap-1 bg-racing-800/50 px-2 py-1 rounded border border-racing-700"
+                                  >
+                                    Get a new key from Google AI Studio <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                  <span className="text-[10px] text-slate-500">
+                                    Your previous key is permanently disabled.
+                                  </span>
+                                </div>
                             </div>
                         )}
                       </div>
